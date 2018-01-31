@@ -7,6 +7,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/urlfetch"
 )
 
 // An OAuthAuthenticator holds state about how OAuth requests should be authenticated.
@@ -62,7 +65,7 @@ func (auth OAuthAuthenticator) CallbackPath() (string, error) {
 // Authorize performs the second part of the OAuth exchange. The client has already been redirected to the
 // Strava authorization page, has granted authorization to the application and has been redirected back to the
 // defined URL. The code param was returned as a query string param in to the redirect_url.
-func (auth OAuthAuthenticator) Authorize(code string, client *http.Client) (*AuthorizationResponse, error) {
+func (auth OAuthAuthenticator) Authorize(r *http.Request, code string, client *http.Client) (*AuthorizationResponse, error) {
 	// make sure a code was passed
 	if code == "" {
 		return nil, OAuthInvalidCodeErr
@@ -70,7 +73,7 @@ func (auth OAuthAuthenticator) Authorize(code string, client *http.Client) (*Aut
 
 	// if a client wasn't passed use the default client
 	if client == nil {
-		client = http.DefaultClient
+		client = urlfetch.Client(appengine.NewContext(r))
 	}
 
 	resp, err := client.PostForm(basePath+"/oauth/token",
@@ -133,12 +136,12 @@ func (auth OAuthAuthenticator) HandlerFunc(
 		}
 
 		// use the client generator if provided.
-		client := http.DefaultClient
+		client := urlfetch.Client(appengine.NewContext(r))
 		if auth.RequestClientGenerator != nil {
 			client = auth.RequestClientGenerator(r)
 		}
 
-		resp, err := auth.Authorize(r.FormValue("code"), client)
+		resp, err := auth.Authorize(r, r.FormValue("code"), client)
 
 		if err != nil {
 			failure(err, w, r)
