@@ -8,6 +8,8 @@ import (
 	"os"
 	"strings"
 
+	"google.golang.org/appengine/urlfetch"
+
 	"testing"
 )
 
@@ -36,7 +38,7 @@ func newCassetteClient(token, cassette string) *Client {
 }
 
 type cassetteTransport struct {
-	http.Transport
+	urlfetch.Transport
 	token     string
 	directory string
 	cassette  string
@@ -66,7 +68,7 @@ func (t *cassetteTransport) RoundTrip(req *http.Request) (*http.Response, error)
 	}
 
 	// need to fetch the data from the web, so use the default transport
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := urlfetch.DefaultClient.Do(req)
 
 	if err != nil {
 		return resp, err
@@ -98,7 +100,7 @@ func newStoreRequestClient() *Client {
 }
 
 type storeRequestTransport struct {
-	http.Transport
+	urlfetch.Transport
 	request *http.Request
 }
 

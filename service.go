@@ -8,6 +8,9 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/urlfetch"
 )
 
 var ClientId int
@@ -44,21 +47,21 @@ var defaultErrorHandler ErrorHandler = func(resp *http.Response) error {
 }
 
 // NewClient builds a normal client for making requests to the strava api.
-// a http.Client can be passed in if http.DefaultClient can not be used.
-func NewClient(token string, client ...*http.Client) *Client {
+// a http.Client can be passed in if urlfetch.DefaultClient can not be used.
+func NewClient(r *http.Request, token string, client ...*http.Client) *Client {
 	c := &Client{token: token}
 	if len(client) != 0 {
 		c.httpClient = client[0]
 	} else {
-		c.httpClient = http.DefaultClient
+		c.httpClient = urlfetch.Client(appengine.NewContext(r))
 	}
 	return c
 }
 
 // NewStubResponseClient can be used for testing
 // TODO, stub out with an actual response
-func NewStubResponseClient(content string, statusCode ...int) *Client {
-	c := NewClient("")
+func NewStubResponseClient(r *http.Request, content string, statusCode ...int) *Client {
+	c := NewClient(r, "")
 	t := &stubResponseTransport{content: content}
 
 	if len(statusCode) != 0 {
@@ -71,7 +74,7 @@ func NewStubResponseClient(content string, statusCode ...int) *Client {
 }
 
 type stubResponseTransport struct {
-	http.Transport
+	urlfetch.Transport
 	content    string
 	statusCode int
 }
